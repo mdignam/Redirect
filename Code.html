@@ -2,156 +2,193 @@
 <html lang="en">
 <head>
 <meta charset="UTF-8">
-    <!-- JSPsych CSS -->
+<title>Reaction Time Experiment</title>
+<!-- JSPsych CSS -->
 <link href="https://mdignam.github.io/Reaction-Time/jspsych-6.1.0/css/jspsych.css" rel="stylesheet" type="text/css">
-
-<!-- Display Stage Styles -->
 <style>
-  /* Background behind the experiment */
+  body { margin: 0; font-family: Arial, sans-serif; }
   #display_stage_background {
-      width: 100vw;
-      height: 100vh;
-      background-color: white;
-      position: fixed;
-      top: 0;
-      left: 0;
-      z-index: -1;
+    width: 100vw;
+    height: 100vh;
+    background-color: white;
+    z-index: -1;
+    position: fixed;
+    top: 0;
+    left: 0;
   }
-
-  /* Main display area for the experiment */
   #display_stage {
-      position: fixed;
-      left: 1vw;
-      top: 1vh;
-      height: 98vh;
-      width: 98vw;
-      background-color: white;
-      box-shadow: 1px 1px 1px #999;
-      border-radius: 15px;
-      z-index: 0;
-      overflow-y: hidden;
-      overflow-x: hidden;
-      padding: 20px;
+    position: fixed;
+    left: 1vw;
+    top: 1vh;
+    height: 98vh;
+    width: 98vw;
+    background-color: white;
+    box-shadow: 1px 1px 1px #999;
+    border-radius: 15px;
+    z-index: 0;
+    overflow: hidden;
+    padding: 20px;
+  }
+  .instruction-images {
+    width: 700px;
+    overflow: hidden;
+    margin: auto;
+  }
+  .instruction-images div {
+    float: left;
+    width: 49%;
+    text-align: center;
   }
 </style>
-<title>Reaction Time Experiment</title>
-<link href="https://mdignam.github.io/Reaction-Time/jspsych-6.1.0/css/jspsych.css" rel="stylesheet">
+</head>
+<body>
+
+<div id="display_stage_background"></div>
+<div id="display_stage"></div>
+
+<!-- JSPsych -->
 <script src="https://mdignam.github.io/Reaction-Time/jspsych-6.1.0/jspsych.js"></script>
 <script src="https://mdignam.github.io/Reaction-Time/jspsych-6.1.0/plugins/jspsych-html-keyboard-response.js"></script>
 <script src="https://mdignam.github.io/Reaction-Time/jspsych-6.1.0/plugins/jspsych-image-keyboard-response.js"></script>
-</head>
-<body>
-<div id="display_stage"></div>
 
 <script>
-// Base URL for images
-var base = "https://mdignam.github.io/Reaction-Time/img/";
+  const base = "https://mdignam.github.io/Reaction-Time/";
+  const timeline = [];
 
-// Timeline
-var timeline = [];
+  // Preload images
+  const imagesToLoad = [
+    base + "img/F_blue.png",
+    base + "img/F_orange.png",
+    base + "img/J_blue.png",
+    base + "img/J_orange.png"
+  ];
+  imagesToLoad.forEach(url => { const img = new Image(); img.src = url; });
 
-// Welcome
-timeline.push({
+  // Welcome screen
+  timeline.push({
     type: "html-keyboard-response",
-    stimulus: "Welcome! Press any key to begin."
-});
+    stimulus: "Welcome to the experiment. Press any key to begin."
+  });
 
-// Instructions (hardcoded images)
-timeline.push({
+  // Instructions
+  timeline.push({
     type: "html-keyboard-response",
     stimulus: `
-        <p>In this experiment, you will see circles with letters.</p>
-        <p>Press F if the circle contains <strong>F</strong>, J if it contains <strong>J</strong>.</p>
-        <div style='width:700px; overflow:hidden;'>
-            <div style='float:left; width:49%; text-align:center;'>
-                <img src='${base}F_blue.png' width='150'><p><strong>Press F</strong></p>
-            </div>
-            <div style='float:right; width:49%; text-align:center;'>
-                <img src='${base}F_orange.png' width='150'><p><strong>Press F</strong></p>
-            </div>
+      <p>In this experiment, you will see circles in the center of the screen.</p>
+      <p>If the circle <strong>contains the letter F</strong>, press F as quickly as you can.</p>
+      <p>If the circle <strong>contains the letter J</strong>, press J as quickly as you can.</p>
+      <p><em>Ignore the color of the circles.</em></p>
+      <div class="instruction-images">
+        <div>
+          <img src='${base}img/F_blue.png' width="150"><p><strong>Press F</strong></p>
         </div>
-        <p>Press any key to start.</p>
-    `
-});
+        <div>
+          <img src='${base}img/F_orange.png' width="150"><p><strong>Press F</strong></p>
+        </div>
+      </div>
+      <p>Press any key to start.</p>
+    `,
+    post_trial_gap: 2000
+  });
 
-// Helper functions
-function makeBlock(stimuli, blockLabel) {
-    return {
-        timeline: [
-            { // Fixation
-                type: "html-keyboard-response",
-                stimulus: '<div style="font-size:60px;">+</div>',
-                choices: jsPsych.NO_KEYS,
-                trial_duration: 500,
-                data: { test_part: "fixation", block: blockLabel }
-            },
-            { // Test trial
-                type: "image-keyboard-response",
-                stimulus: jsPsych.timelineVariable("stimulus"),
-                choices: ["f","j"],
-                data: jsPsych.timelineVariable("data"),
-                on_finish: function(data){
-                    data.block = blockLabel;
-                    data.correct = data.key_press === jsPsych.pluginAPI.convertKeyCharacterToKeyCode(data.correct_response);
-                }
-            }
-        ],
-        timeline_variables: stimuli,
-        repetitions: 10,
-        randomize_order: true
+  // Helper functions
+  function makeBlock(stimuli, blockLabel) {
+    const fixation = {
+      type: "html-keyboard-response",
+      stimulus: '<div style="font-size:60px;">+</div>',
+      choices: jsPsych.NO_KEYS,
+      trial_duration: function() {
+        return jsPsych.randomization.sampleWithoutReplacement(
+          [250, 500, 750, 1000, 1250, 1500, 1750, 2000], 1
+        )[0];
+      },
+      data: { test_part: "fixation", block: blockLabel }
     };
-}
 
-// Blocks
-timeline.push(makeBlock([
-    { stimulus: base + "F_blue.png", data: { correct_response: "f", test_part: "test" } },
-    { stimulus: base + "J_orange.png", data: { correct_response: "j", test_part: "test" } }
-], "1"));
+    const test = {
+      type: "image-keyboard-response",
+      stimulus: jsPsych.timelineVariable("stimulus"),
+      choices: ["f", "j"],
+      data: jsPsych.timelineVariable("data"),
+      on_finish: function(data) {
+        data.block = blockLabel;
+        data.correct = data.key_press === jsPsych.pluginAPI.convertKeyCharacterToKeyCode(data.correct_response);
+      }
+    };
 
-timeline.push(makeBlock([
-    { stimulus: base + "F_orange.png", data: { correct_response: "f", test_part: "test" } },
-    { stimulus: base + "J_blue.png", data: { correct_response: "j", test_part: "test" } }
-], "2"));
+    return {
+      timeline: [fixation, test],
+      timeline_variables: stimuli,
+      repetitions: 10,
+      randomize_order: true
+    };
+  }
 
-// Final debrief and redirect back to Qualtrics
-timeline.push({
+  function makeDebrief(blockLabel) {
+    return {
+      type: "html-keyboard-response",
+      stimulus: function() {
+        const trials = jsPsych.data.get().filter({ test_part: "test", block: blockLabel });
+        const correct_trials = trials.filter({ correct: true });
+        const accuracy = Math.round((correct_trials.count() / trials.count()) * 100);
+        const rt = Math.round(correct_trials.select("rt").mean());
+        return `<p>Block ${blockLabel} complete.</p>
+                <p>Accuracy: ${isFinite(accuracy) ? accuracy : 0}%</p>
+                <p>Average RT: ${isFinite(rt) ? rt : 0} ms</p>
+                <p>Press any key to continue to the next block.</p>`;
+      }
+    };
+  }
+
+  // Blocks
+  timeline.push(makeBlock([
+    { stimulus: base + "img/F_blue.png", data: { test_part: "test", correct_response: "f" } },
+    { stimulus: base + "img/J_orange.png", data: { test_part: "test", correct_response: "j" } }
+  ], "1"));
+  timeline.push(makeDebrief("1"));
+
+  timeline.push(makeBlock([
+    { stimulus: base + "img/F_blue.png", data: { test_part: "test", correct_response: "f" } },
+    { stimulus: base + "img/J_orange.png", data: { test_part: "test", correct_response: "j" } }
+  ], "2"));
+  timeline.push(makeDebrief("2"));
+
+  timeline.push(makeBlock([
+    { stimulus: base + "img/F_orange.png", data: { test_part: "test", correct_response: "f" } },
+    { stimulus: base + "img/J_blue.png", data: { test_part: "test", correct_response: "j" } }
+  ], "3"));
+  timeline.push(makeDebrief("3"));
+
+  // Final debrief
+  timeline.push({
     type: "html-keyboard-response",
-    stimulus: "<p>All blocks complete. Press any key to continue.</p>",
-    on_finish: function() {
-        // Gather stats
-        var total_trials = jsPsych.data.get().filter({ test_part: "test" });
-        var total_correct = total_trials.filter({ correct: true });
-        var total_accuracy = Math.round((total_correct.count() / total_trials.count())*100);
-        var total_rt = Math.round(total_correct.select("rt").mean());
+    stimulus: function() {
+      const total_trials = jsPsych.data.get().filter({ test_part: "test" });
+      const total_correct = total_trials.filter({ correct: true });
+      const total_accuracy = Math.round((total_correct.count() / total_trials.count()) * 100);
+      const total_rt = Math.round(total_correct.select("rt").mean());
 
-        // Stats per block
-        var block_stats = [];
-        for (var b = 1; b <= 2; b++) {
-            var trials = total_trials.filter({ block: b.toString() });
-            var correct = trials.filter({ correct: true });
-            block_stats.push({
-                acc: Math.round((correct.count()/trials.count())*100),
-                rt: Math.round(correct.select("rt").mean())
-            });
-        }
-
-        // Build query string
-        var qs = "?Total_Accuracy=" + total_accuracy + "&Total_RT=" + total_rt;
-        block_stats.forEach((b,i)=>{
-            qs += "&Block" + (i+1) + "_Accuracy=" + b.acc;
-            qs += "&Block" + (i+1) + "_RT=" + b.rt;
-        });
-
-        // Redirect to Qualtrics (replace URL with your survey)
-        var qualtricsURL = "https://YOUR_QUALTRICS_SURVEY_URL" + qs;
-        window.location.href = qualtricsURL;
+      let html = `<h3>Final Results</h3>`;
+      for (let b = 1; b <= 3; b++) {
+        const block_trials = total_trials.filter({ block: b.toString() });
+        const block_correct = block_trials.filter({ correct: true });
+        const acc = Math.round((block_correct.count() / block_trials.count()) * 100);
+        const rtb = Math.round(block_correct.select("rt").mean());
+        html += `<p>Block ${b} — Accuracy: ${isFinite(acc) ? acc : 0}%, Avg RT: ${isFinite(rtb) ? rtb : 0} ms</p>`;
+      }
+      html += `<p><strong>Overall Accuracy:</strong> ${isFinite(total_accuracy) ? total_accuracy : 0}%</p>`;
+      html += `<p><strong>Overall Avg RT:</strong> ${isFinite(total_rt) ? total_rt : 0} ms</p>`;
+      html += "<p>Press any key to finish.</p>";
+      return html;
     }
-});
+  });
 
-jsPsych.init({
+  // Init experiment
+  jsPsych.init({
     timeline: timeline,
     display_element: "display_stage"
-});
+  });
 </script>
+
 </body>
 </html>
