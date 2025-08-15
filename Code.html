@@ -2,6 +2,38 @@
 <html lang="en">
 <head>
 <meta charset="UTF-8">
+    <!-- JSPsych CSS -->
+<link href="https://mdignam.github.io/Reaction-Time/jspsych-6.1.0/css/jspsych.css" rel="stylesheet" type="text/css">
+
+<!-- Display Stage Styles -->
+<style>
+  /* Background behind the experiment */
+  #display_stage_background {
+      width: 100vw;
+      height: 100vh;
+      background-color: white;
+      position: fixed;
+      top: 0;
+      left: 0;
+      z-index: -1;
+  }
+
+  /* Main display area for the experiment */
+  #display_stage {
+      position: fixed;
+      left: 1vw;
+      top: 1vh;
+      height: 98vh;
+      width: 98vw;
+      background-color: white;
+      box-shadow: 1px 1px 1px #999;
+      border-radius: 15px;
+      z-index: 0;
+      overflow-y: hidden;
+      overflow-x: hidden;
+      padding: 20px;
+  }
+</style>
 <title>Reaction Time Experiment</title>
 <link href="https://mdignam.github.io/Reaction-Time/jspsych-6.1.0/css/jspsych.css" rel="stylesheet">
 <script src="https://mdignam.github.io/Reaction-Time/jspsych-6.1.0/jspsych.js"></script>
