@@ -1,0 +1,125 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<title>Reaction Time Experiment</title>
+<link href="https://mdignam.github.io/Reaction-Time/jspsych-6.1.0/css/jspsych.css" rel="stylesheet">
+<script src="https://mdignam.github.io/Reaction-Time/jspsych-6.1.0/jspsych.js"></script>
+<script src="https://mdignam.github.io/Reaction-Time/jspsych-6.1.0/plugins/jspsych-html-keyboard-response.js"></script>
+<script src="https://mdignam.github.io/Reaction-Time/jspsych-6.1.0/plugins/jspsych-image-keyboard-response.js"></script>
+</head>
+<body>
+<div id="display_stage"></div>
+
+<script>
+// Base URL for images
+var base = "https://mdignam.github.io/Reaction-Time/img/";
+
+// Timeline
+var timeline = [];
+
+// Welcome
+timeline.push({
+    type: "html-keyboard-response",
+    stimulus: "Welcome! Press any key to begin."
+});
+
+// Instructions (hardcoded images)
+timeline.push({
+    type: "html-keyboard-response",
+    stimulus: `
+        <p>In this experiment, you will see circles with letters.</p>
+        <p>Press F if the circle contains <strong>F</strong>, J if it contains <strong>J</strong>.</p>
+        <div style='width:700px; overflow:hidden;'>
+            <div style='float:left; width:49%; text-align:center;'>
+                <img src='${base}F_blue.png' width='150'><p><strong>Press F</strong></p>
+            </div>
+            <div style='float:right; width:49%; text-align:center;'>
+                <img src='${base}F_orange.png' width='150'><p><strong>Press F</strong></p>
+            </div>
+        </div>
+        <p>Press any key to start.</p>
+    `
+});
+
+// Helper functions
+function makeBlock(stimuli, blockLabel) {
+    return {
+        timeline: [
+            { // Fixation
+                type: "html-keyboard-response",
+                stimulus: '<div style="font-size:60px;">+</div>',
+                choices: jsPsych.NO_KEYS,
+                trial_duration: 500,
+                data: { test_part: "fixation", block: blockLabel }
+            },
+            { // Test trial
+                type: "image-keyboard-response",
+                stimulus: jsPsych.timelineVariable("stimulus"),
+                choices: ["f","j"],
+                data: jsPsych.timelineVariable("data"),
+                on_finish: function(data){
+                    data.block = blockLabel;
+                    data.correct = data.key_press === jsPsych.pluginAPI.convertKeyCharacterToKeyCode(data.correct_response);
+                }
+            }
+        ],
+        timeline_variables: stimuli,
+        repetitions: 10,
+        randomize_order: true
+    };
+}
+
+// Blocks
+timeline.push(makeBlock([
+    { stimulus: base + "F_blue.png", data: { correct_response: "f", test_part: "test" } },
+    { stimulus: base + "J_orange.png", data: { correct_response: "j", test_part: "test" } }
+], "1"));
+
+timeline.push(makeBlock([
+    { stimulus: base + "F_orange.png", data: { correct_response: "f", test_part: "test" } },
+    { stimulus: base + "J_blue.png", data: { correct_response: "j", test_part: "test" } }
+], "2"));
+
+// Final debrief and redirect back to Qualtrics
+timeline.push({
+    type: "html-keyboard-response",
+    stimulus: "<p>All blocks complete. Press any key to continue.</p>",
+    on_finish: function() {
+        // Gather stats
+        var total_trials = jsPsych.data.get().filter({ test_part: "test" });
+        var total_correct = total_trials.filter({ correct: true });
+        var total_accuracy = Math.round((total_correct.count() / total_trials.count())*100);
+        var total_rt = Math.round(total_correct.select("rt").mean());
+
+        // Stats per block
+        var block_stats = [];
+        for (var b = 1; b <= 2; b++) {
+            var trials = total_trials.filter({ block: b.toString() });
+            var correct = trials.filter({ correct: true });
+            block_stats.push({
+                acc: Math.round((correct.count()/trials.count())*100),
+                rt: Math.round(correct.select("rt").mean())
+            });
+        }
+
+        // Build query string
+        var qs = "?Total_Accuracy=" + total_accuracy + "&Total_RT=" + total_rt;
+        block_stats.forEach((b,i)=>{
+            qs += "&Block" + (i+1) + "_Accuracy=" + b.acc;
+            qs += "&Block" + (i+1) + "_RT=" + b.rt;
+        });
+
+        // Redirect to Qualtrics (replace URL with your survey)
+        var qualtricsURL = "https://YOUR_QUALTRICS_SURVEY_URL" + qs;
+        window.location.href = qualtricsURL;
+    }
+});
+
+jsPsych.init({
+    timeline: timeline,
+    display_element: "display_stage"
+});
+</script>
+</body>
+</html>
